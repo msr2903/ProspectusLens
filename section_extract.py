@@ -92,7 +92,7 @@ def find_underwriter(uploaded_file):
         st.warning("Please upload a PDF on the Home page first.")
 
 
-def find_section(uploaded_file, section_name):
+def find_financial(uploaded_file, section_name):
     """
     Extracts and displays sections of a PDF based on keyword matches.
 
