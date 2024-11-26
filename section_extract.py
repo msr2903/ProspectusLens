@@ -3,6 +3,7 @@ import re
 from PyPDF2 import PdfReader, PdfWriter
 from streamlit_pdf_viewer import pdf_viewer
 import streamlit as st
+from config import keywords_dict, stop_keywords, anti_keywords
 
 def find_cover(uploaded_file):
     """
@@ -14,8 +15,8 @@ def find_cover(uploaded_file):
     Returns:
         None
     """
-    section_title = "Cover"
-    st.title(section_title)
+    section_title = "cover"
+    st.title(section_title.title())
 
     if uploaded_file:
         try:
@@ -27,7 +28,7 @@ def find_cover(uploaded_file):
             pdf_writer.add_page(first_page)
 
             # Save the first page to a temporary file
-            temp_first_page_path = os.path.join(f"temp_{section_title.lower()}.pdf")
+            temp_first_page_path = os.path.join(f"temp_{section_title}.pdf")
             with open(temp_first_page_path, "wb") as f:
                 pdf_writer.write(f)
 
@@ -39,19 +40,18 @@ def find_cover(uploaded_file):
         st.warning("Please upload a PDF on the Home page first.")
 
 
-def find_underwriter(uploaded_file, section_name, keywords_dict):
+def find_underwriter(uploaded_file):
     """
     Searches for pages in a PDF containing specific keywords for the 'underwriter' section and displays them,
     starting from the last 2/3 of the PDF to improve performance.
 
     Parameters:
         uploaded_file: The uploaded PDF file.
-        section_name: The name of the section (e.g., "Underwriter").
-        keywords_dict: Dictionary containing keyword sets for different sections.
 
     Returns:
         None
     """
+    section_name = "underwriter"
     st.title(section_name.title())
 
     keyword_sets = keywords_dict.get(section_name, [])
@@ -92,20 +92,18 @@ def find_underwriter(uploaded_file, section_name, keywords_dict):
         st.warning("Please upload a PDF on the Home page first.")
 
 
-def find_section(uploaded_file, section_name, keywords_dict, stop_keywords, anti_keywords):
+def find_section(uploaded_file, section_name):
     """
     Extracts and displays sections of a PDF based on keyword matches.
 
     Parameters:
         uploaded_file: The uploaded PDF file (Streamlit file uploader object).
         section_name: The name of the section to search for (e.g., "income_statement").
-        keywords_dict: A dictionary containing keyword sets for different sections.
-        stop_keywords: A dictionary of keywords to indicate where extraction should stop.
-        anti_keywords: A dictionary of keywords to exclude specific pages from the results.
 
     Returns:
         bool: True if processing completed without interruptions; False if stopped or an error occurred.
     """
+
     st.title(section_name.replace("_", " ").title())
 
     if uploaded_file:
