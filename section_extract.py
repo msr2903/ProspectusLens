@@ -1,19 +1,18 @@
 import os
 import re
 from PyPDF2 import PdfReader, PdfWriter
-from streamlit_pdf_viewer import pdf_viewer
 import streamlit as st
 from config import keywords_dict, stop_keywords, anti_keywords
 
 def find_cover(uploaded_file):
     """
-    Extracts and displays the first page of a PDF.
+    Extracts and saves the first page of a PDF to a temporary file.
 
     Parameters:
         uploaded_file: The uploaded PDF file.
 
     Returns:
-        None
+        str: Path to the temporary file containing the first page of the PDF.
     """
     section_title = "cover"
     st.title(section_title.title())
@@ -25,31 +24,30 @@ def find_cover(uploaded_file):
             first_page = pdf_reader.pages[0]
 
             pdf_writer = PdfWriter()
-            pdf_writer.add_page(first_page)
-
-            # Save the first page to a temporary file
-            temp_first_page_path = os.path.join(f"temp_{section_title}.pdf")
-            with open(temp_first_page_path, "wb") as f:
+            temp_cover_page_path = os.path.join(f"temp_{section_title}.pdf")
+            with open(temp_cover_page_path, "wb") as f:
+                pdf_writer.add_page(first_page)
                 pdf_writer.write(f)
 
-            # Display the first page using pdf_viewer
-            pdf_viewer(temp_first_page_path)
+            # Return the path to the temporary file
+            return temp_cover_page_path
         except Exception as e:
             st.error(f"An error occurred while processing the PDF: {e}")
+            return None
     else:
         st.warning("Please upload a PDF on the Home page first.")
+        return None
 
 
 def find_underwriter(uploaded_file):
     """
-    Searches for pages in a PDF containing specific keywords for the 'underwriter' section and displays them,
-    starting from the last 2/3 of the PDF to improve performance.
+    Searches for pages in a PDF containing specific keywords for the 'underwriter' section and returns the extracted file path.
 
     Parameters:
         uploaded_file: The uploaded PDF file.
 
     Returns:
-        None
+        str: Path to the temporary file containing the extracted 'underwriter' page(s).
     """
     section_name = "underwriter"
     st.title(section_name.title())
@@ -57,7 +55,7 @@ def find_underwriter(uploaded_file):
     keyword_sets = keywords_dict.get(section_name, [])
     if not keyword_sets:
         st.error(f"No keywords defined for section: {section_name}")
-        return
+        return None
 
     if uploaded_file:
         try:
@@ -73,7 +71,7 @@ def find_underwriter(uploaded_file):
                     
                     # Check if any keyword in the set is found on the page
                     if any(re.search(keyword, text, re.IGNORECASE) for keyword in keyword_set):
-                        # Display the matched page
+                        # Save the matched page to a temporary file
                         pdf_writer = PdfWriter()
                         pdf_writer.add_page(page)
 
@@ -81,16 +79,17 @@ def find_underwriter(uploaded_file):
                         with open(temp_page_path, "wb") as f:
                             pdf_writer.write(f)
 
-                        st.write(f"Keyword found on page {page_num}")
-                        pdf_viewer(temp_page_path)
-                        return  # Exit after finding the first match
+                        # Return the path of the extracted page
+                        return temp_page_path
 
             st.warning(f"No pages contain the specified keywords for {section_name}.")
+            return None
         except Exception as e:
             st.error(f"An error occurred while processing the PDF: {e}")
+            return None
     else:
         st.warning("Please upload a PDF on the Home page first.")
-
+        return None
 
 def find_financial(uploaded_file, section_name):
     """
@@ -148,7 +147,7 @@ def find_financial(uploaded_file, section_name):
                                     temp_section_path = os.path.join(f"temp_{section_name}_section.pdf")
                                     with open(temp_section_path, "wb") as f:
                                         pdf_writer.write(f)
-                                    pdf_viewer(temp_section_path)
+                                    return temp_section_path
                                 else:
                                     st.warning(f"No pages matched the criteria for {section_name}.")
 
@@ -178,7 +177,7 @@ def find_financial(uploaded_file, section_name):
                             temp_section_path = os.path.join(f"temp_{section_name}_section.pdf")
                             with open(temp_section_path, "wb") as f:
                                 pdf_writer.write(f)
-                            pdf_viewer(temp_section_path)
+                            return temp_section_path
                         else:
                             st.warning(f"No pages matched the criteria for {section_name}.")
 
@@ -190,7 +189,7 @@ def find_financial(uploaded_file, section_name):
                 temp_section_path = os.path.join(f"temp_{section_name}_section.pdf")
                 with open(temp_section_path, "wb") as f:
                     pdf_writer.write(f)
-                pdf_viewer(temp_section_path)
+                return temp_section_path
             else:
                 st.warning(f"No pages matched the criteria for {section_name}.")
 
