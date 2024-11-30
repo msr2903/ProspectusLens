@@ -1,5 +1,7 @@
 import streamlit as st
-from pages import home, cover, underwriter, income_statement, balance_sheet, cash_flow
+from pages import home, cover, underwriter, income_statement, balance_sheet, cash_flow, uploader_sidebar
+
+uploader_sidebar()
 
 # Define pages
 pages = {

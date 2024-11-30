@@ -15,8 +15,6 @@ def find_cover(uploaded_file):
         str: Path to the temporary file containing the first page of the PDF.
     """
     section_title = "cover"
-    st.title(section_title.title())
-
     if uploaded_file:
         try:
             # Read the PDF and extract the first page
@@ -24,7 +22,7 @@ def find_cover(uploaded_file):
             first_page = pdf_reader.pages[0]
 
             pdf_writer = PdfWriter()
-            temp_cover_page_path = os.path.join(f"temp_{section_title}.pdf")
+            temp_cover_page_path = os.path.join(f"temp_{section_title}_1.pdf")
             with open(temp_cover_page_path, "wb") as f:
                 pdf_writer.add_page(first_page)
                 pdf_writer.write(f)
@@ -50,7 +48,6 @@ def find_underwriter(uploaded_file):
         str: Path to the temporary file containing the extracted 'underwriter' page(s).
     """
     section_name = "underwriter"
-    st.title(section_name.title())
 
     keyword_sets = keywords_dict.get(section_name, [])
     if not keyword_sets:
@@ -75,7 +72,7 @@ def find_underwriter(uploaded_file):
                         pdf_writer = PdfWriter()
                         pdf_writer.add_page(page)
 
-                        temp_page_path = os.path.join(f"temp_{section_name.lower()}_page_{page_num + 1}.pdf")
+                        temp_page_path = os.path.join(f"temp_{section_name}_{page_num}.pdf")
                         with open(temp_page_path, "wb") as f:
                             pdf_writer.write(f)
 
@@ -102,9 +99,6 @@ def find_financial(uploaded_file, section_name):
     Returns:
         bool: True if processing completed without interruptions; False if stopped or an error occurred.
     """
-
-    st.title(section_name.replace("_", " ").title())
-
     if uploaded_file:
         try:
             pdf_reader = PdfReader(uploaded_file)
@@ -120,6 +114,8 @@ def find_financial(uploaded_file, section_name):
 
             pdf_writer = PdfWriter()  # Writer for the extracted pages
             extraction_started = False  # Flag to check if extraction has started
+            extraction_start_page = None  # Track the starting page number
+            pages_extracted = 0  # Counter for extracted pages
 
             for page_num, page in enumerate(pages, start=start_page + 1):
                 text = page.extract_text()
@@ -128,23 +124,23 @@ def find_financial(uploaded_file, section_name):
                 if not extraction_started:
                     for keyword_set in section_keywords:
                         if all(re.search(keyword, text, re.IGNORECASE) for keyword in keyword_set):
-                            st.write(f"Keywords matched on page {page_num}. Starting extraction.")
                             pdf_writer.add_page(page)
+                            pages_extracted += 1
+                            extraction_start_page = page_num  # Set the starting page number
 
                             # Check for stop keywords on the same page
                             if any(all(re.search(keyword, text, re.IGNORECASE) for keyword in stop_set)
                                    for stop_set in section_stop_keywords):
-                                st.warning(f"Stop keywords matched on starting page {page_num}. Stopping extraction.")
 
                                 # Check for anti-keywords before stopping
                                 if any(all(re.search(keyword, text, re.IGNORECASE) for keyword in anti_set)
                                        for anti_set in section_anti_keywords):
-                                    st.write(f"Page {page_num} contains anti-keywords. Excluding from results.")
                                     pdf_writer.pages.pop()  # Remove the last added page
+                                    pages_extracted -= 1
 
                                 # Save and display the extracted pages (if any)
                                 if len(pdf_writer.pages) > 0:
-                                    temp_section_path = os.path.join(f"temp_{section_name}_section.pdf")
+                                    temp_section_path = os.path.join(f"temp_{section_name}_{extraction_start_page}-{page_num}.pdf")
                                     with open(temp_section_path, "wb") as f:
                                         pdf_writer.write(f)
                                     return temp_section_path
@@ -158,23 +154,32 @@ def find_financial(uploaded_file, section_name):
                                 extraction_started = True
                                 break
                 elif extraction_started:
+                    # Check if we've reached the 3-page limit
+                    if pages_extracted >= 3:
+                        if len(pdf_writer.pages) > 0:
+                            temp_section_path = os.path.join(f"temp_{section_name}_{extraction_start_page}-{page_num-1}.pdf")
+                            with open(temp_section_path, "wb") as f:
+                                pdf_writer.write(f)
+                            return temp_section_path
+                        return False
+
                     # Step 3: Add the page to the output
                     pdf_writer.add_page(page)
+                    pages_extracted += 1
 
                     # Step 4: Check for stop keywords
                     if any(all(re.search(keyword, text, re.IGNORECASE) for keyword in stop_set)
                            for stop_set in section_stop_keywords):
-                        st.warning(f"Stopping extraction at page {page_num}. Stop keywords matched.")
 
                         # Step 5: After stopping, check for anti-keywords
                         if any(all(re.search(keyword, text, re.IGNORECASE) for keyword in anti_set)
                                for anti_set in section_anti_keywords):
-                            st.write(f"Page {page_num} contains anti-keywords. Excluding from results.")
                             pdf_writer.pages.pop()  # Remove the last added page
+                            pages_extracted -= 1
 
                         # Save and display the extracted pages (if any)
                         if len(pdf_writer.pages) > 0:
-                            temp_section_path = os.path.join(f"temp_{section_name}_section.pdf")
+                            temp_section_path = os.path.join(f"temp_{section_name}_{extraction_start_page}-{page_num}.pdf")
                             with open(temp_section_path, "wb") as f:
                                 pdf_writer.write(f)
                             return temp_section_path
@@ -186,7 +191,7 @@ def find_financial(uploaded_file, section_name):
 
             # If extraction finished without hitting stop keywords, save and display the pages
             if len(pdf_writer.pages) > 0:
-                temp_section_path = os.path.join(f"temp_{section_name}_section.pdf")
+                temp_section_path = os.path.join(f"temp_{section_name}_{extraction_start_page}-{page_num}.pdf")
                 with open(temp_section_path, "wb") as f:
                     pdf_writer.write(f)
                 return temp_section_path
