@@ -10,11 +10,6 @@ def uploader_sidebar():
         # Initialize session state for processing flags and paths
         if "uploaded_file" not in st.session_state:
             st.session_state["uploaded_file"] = uploaded_file
-            st.session_state["cover_path"] = None
-            st.session_state["underwriter_path"] = None
-            st.session_state["income_statement_path"] = None
-            st.session_state["balance_sheet_path"] = None
-            st.session_state["cash_flow_path"] = None
             st.session_state["processing"] = {
                 "cover_path": False,
                 "underwriter_path": False,
@@ -26,9 +21,16 @@ def uploader_sidebar():
         else:
             st.session_state["uploaded_file"] = uploaded_file
         process_sections()
+    else:
+        # Clear all session state when no file is uploaded
+        keys_to_clear = ["uploaded_file", "processing", "all_processed", 
+                        "cover_path", "underwriter_path", "income_statement_path", 
+                        "balance_sheet_path", "cash_flow_path"]
+        for key in keys_to_clear:
+            if key in st.session_state:
+                del st.session_state[key]
 
 def process_sections():
-    """Continuously process all sections in the background."""
     if "processing" in st.session_state and not st.session_state.get("all_processed", False):
         for key, processed in st.session_state["processing"].items():
             if not processed:
